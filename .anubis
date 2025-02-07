@@ -1,0 +1,22 @@
+{
+    "anubis_language_config": {
+        "line_start": "",
+        "multiline_start": "@",
+        "multiline_end": "@"
+    },
+    "language_configs": {
+        "rs":{
+            "line_start": "",
+            "multiline_start": "/*",
+            "multiline_end": "*/"
+        }
+    },
+    "anubis_ignore": [
+        "./.git/**",
+        "./target/**",
+        "*.anubis",
+        "*lock",
+        "*toml",
+        "*.gitignore"
+    ]
+}
