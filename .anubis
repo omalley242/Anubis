@@ -7,8 +7,8 @@
         },
         "md":{
             "anubis_character": "@",
-            "multiline_start": "/*",
-            "multiline_end": "*/"
+            "multiline_start": "<!--",
+            "multiline_end": "-->"
         }
     },
     "anubis_ignore": [

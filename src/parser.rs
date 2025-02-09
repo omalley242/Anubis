@@ -2,7 +2,7 @@ use nom::{branch::alt, bytes::complete::{is_not, tag, take_until}, character::co
 use nom::sequence::delimited;
 use nom::IResult;
 use nom::character::anychar;
-use crate::common::{AnubisError, LanguageConfig};
+use crate::common::LanguageConfig;
 
 
 #[derive(Debug, Clone, PartialEq)]
@@ -34,16 +34,14 @@ pub enum CommentState{
 pub fn parse_file_contents<'a>(
     file_contents: &'a str,
     language_config: &'a LanguageConfig
-) -> Result<Vec<Block>, AnubisError> {
+) -> Option<Vec<Block>> {
 
     let result =  file(&language_config).parse(file_contents);
     
     if result.is_ok() {
-        
-        let (_not_matched, blocks) = result.unwrap();
-        return Ok(blocks);
+        return Some(result.unwrap().1);
     }else{
-        return Err(AnubisError::ParsingError("unable to parse the supplied file, may not contain any blocks".to_string()));
+        return None;
     }
 
 }
@@ -128,7 +126,7 @@ fn block_content<'a>(language_config: &'a LanguageConfig) -> impl Parser<&'a str
 
 fn block<'a>(language_config: &'a LanguageConfig) -> impl Parser<&'a str, Output = Block, Error = error::Error<&'a str>> {
     delimited(
-        tag(language_config.anubis_character.as_str()),
+        ws(tag(language_config.anubis_character.as_str())),
         pair(block_header, many1(block_content(language_config))),
         tag(language_config.anubis_character.as_str())
     ).map(|(header, content)| Block { info: header, content: content })
@@ -151,8 +149,7 @@ fn file<'a>(language_config: &'a LanguageConfig) -> impl Parser<&'a str, Output 
             ))
         ))
     ).map(|result| 
-        result.iter().filter(|block|block.is_some())
-        .map(|result| result.clone().unwrap()).collect()
+        result.iter().filter_map(|block|block.clone()).collect()
     )
 }
 
