@@ -1,9 +1,8 @@
 use core::str;
 use std::{collections::{HashMap, HashSet}, error::Error, fmt::{self}, fs::File, io::{BufReader, Read}, path::PathBuf, str::FromStr, vec};
-use anubis::{common::{AnubisError, Config, LanguageConfig}, parser::{parse_string, Block}};
+use anubis::{common::{AnubisError, Config, LanguageConfig}, parser::{parse_file_contents, Block}};
 use clap::{Parser, Subcommand};
 use globset::{Glob, GlobBuilder, GlobSetBuilder};
-use nom::error::ParseError;
 use serde::{Deserialize, Serialize};
 use walkdir::WalkDir;
 
@@ -115,7 +114,7 @@ fn parse_files(config_path: Option<PathBuf>) -> Result<(), Box<dyn std::error::E
         };
 
 
-        let parse_response = parse_file(file, &config.anubis_language_config, lang_config);
+        let parse_response = parse_file(file, lang_config);
         //add data to database
 
     }
@@ -123,7 +122,7 @@ fn parse_files(config_path: Option<PathBuf>) -> Result<(), Box<dyn std::error::E
     Ok(())
 }
 
-fn parse_file<'a>(file_path: &'a PathBuf, anubis_config: &'a LanguageConfig,  language_config: &'a LanguageConfig) -> Result<Vec<Block<'a>>, Box<dyn std::error::Error>>{
+fn parse_file<'a>(file_path: &'a PathBuf,  language_config: &'a LanguageConfig) -> Result<Vec<Block>, Box<dyn std::error::Error>>{
     //call parser
     let file_to_parse = File::open(file_path)?;
     let mut file_reader = BufReader::new(file_to_parse);
@@ -131,7 +130,10 @@ fn parse_file<'a>(file_path: &'a PathBuf, anubis_config: &'a LanguageConfig,  la
     let mut file_contents = String::new();
     let _ = file_reader.read_to_string(&mut file_contents)?;
 
-    let parse_result = parse_string(file_contents, anubis_config, language_config);
+    let parse_result = parse_file_contents(&file_contents, language_config);
+
+    println!("{:?}", parse_result);
+    println!("{:?}", file_path);
 
     Ok(vec![])
 }

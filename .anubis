@@ -1,12 +1,12 @@
 {
-    "anubis_language_config": {
-        "line_start": "",
-        "multiline_start": "@",
-        "multiline_end": "@"
-    },
     "language_configs": {
         "rs":{
-            "line_start": "",
+            "anubis_character": "@",
+            "multiline_start": "/*",
+            "multiline_end": "*/"
+        },
+        "md":{
+            "anubis_character": "@",
             "multiline_start": "/*",
             "multiline_end": "*/"
         }

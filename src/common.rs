@@ -1,4 +1,4 @@
-use std::{collections::HashMap, error::Error, fmt, path::PathBuf};
+use std::{collections::HashMap, error::Error, fmt};
 
 use serde::{Deserialize, Serialize};
 
@@ -6,7 +6,6 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Config
 {
-    pub anubis_language_config: LanguageConfig,
     pub language_configs: HashMap<String, LanguageConfig>,
     pub anubis_ignore: Vec<String>
 }
@@ -14,7 +13,7 @@ pub struct Config
 #[derive(Debug, Deserialize, Serialize)]
 pub struct LanguageConfig
 {
-    pub line_start: String,
+    pub anubis_character: String,
     pub multiline_start: String,
     pub multiline_end: String,
 }
@@ -22,11 +21,6 @@ pub struct LanguageConfig
 impl Default for Config {
     fn default() -> Self {
         Config { 
-            anubis_language_config: LanguageConfig {
-                line_start: "//".to_string(),
-                multiline_start: "/*".to_string(),
-                multiline_end: "*/".to_string(),
-            },
             language_configs: HashMap::new(),
             anubis_ignore: vec![]
         }
@@ -36,7 +30,7 @@ impl Default for Config {
 impl Default for LanguageConfig {
     fn default() -> Self {
         LanguageConfig {
-                line_start: "".to_string(), 
+                anubis_character: "".to_string(), 
                 multiline_start: "".to_string(),
                 multiline_end: "".to_string()
             }
