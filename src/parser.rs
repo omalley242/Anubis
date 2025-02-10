@@ -2,22 +2,23 @@ use nom::{branch::alt, bytes::complete::{is_not, tag, take_until}, character::co
 use nom::sequence::delimited;
 use nom::IResult;
 use nom::character::anychar;
+use serde::{Deserialize, Serialize};
 use crate::common::LanguageConfig;
 
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct BlockInfo {
-    name: String,                       //Page Name
-    template_name: String,             //Template to use when rendering
+    pub name: String,                       //Page Name
+    pub template_name: String,             //Template to use when rendering
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Block {
-    info: BlockInfo,
-    content: Vec<BlockContent>,              //the markdown content within the block
+    pub info: BlockInfo,
+    pub content: Vec<BlockContent>,              //the markdown content within the block
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum BlockContent{
     Markdown(String),  // Markdown content
     Code(String),      // Code string

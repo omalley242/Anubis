@@ -3,6 +3,7 @@ use std::{collections::HashSet, fs::File, io::{BufReader, Read}, path::PathBuf};
 use anubis::{common::{Config, LanguageConfig}, parser::{parse_file_contents, Block}};
 use clap::{Parser, Subcommand};
 use globset::{Glob, GlobSet, GlobSetBuilder};
+use rusqlite::{params, Connection};
 use walkdir::WalkDir;
 
 #[derive(Parser)]
@@ -46,9 +47,8 @@ fn main() {
         Some(Commands::Run) => {run_server()}
         Some(Commands::All) | None => {
             let parse_error = parse_files(config_path.as_ref());
-
+            println!("{:?}", parse_error);
             if parse_error.is_err() {
-                println!("{:?}", parse_error);
                 parse_error
             }else{
                 run_server()
@@ -57,37 +57,76 @@ fn main() {
         }
     };
 
-    //Error Handling managed here
-
 }
+
+fn run_server() -> Result<(), Box<dyn std::error::Error>> {
+    
+
+    Ok(())
+}
+
 
 fn parse_files(config_path: Option<&PathBuf>) -> Result<(), Box<dyn std::error::Error>> {
 
-    let config = deserialize_config(config_path)?;          //obtain config
+    let config = deserialize_config(config_path)?;                //obtain config
 
-    let mut file_worklist = collect_all_files();  //collect all possible files
+    let mut file_worklist = collect_all_files();        //collect all possible files
 
-    let ignore_glob = generate_ignore_glob(&config)?;      //create ignore glob
+    let ignore_glob = generate_ignore_glob(&config)?;            //create ignore glob
 
-    remove_ignored_files(&mut file_worklist, ignore_glob);    //apply ignore glob
+    remove_ignored_files(&mut file_worklist, ignore_glob);     //apply ignore glob
 
-    for file in file_worklist {
+    let db_con = initalize_db()?;                             //create connetion and table
+
+    process_file_list(file_worklist, &config, db_con)?;        //parse the file and store the result in the database
+
+    Ok(())
+}
+
+fn initalize_db() -> Result<Connection, Box<dyn std::error::Error>>{
+    let conn = Connection::open("blocks.db")?;
+
+    conn.execute(
+        "drop table if exists blocks",
+        [],
+    )?;
+
+    conn.execute(
+        "create table if not exists blocks (
+             id integer primary key,
+             block_name text not null unique,
+             block_json text not null unique
+         )",
+        [],
+    )?;
+
+    Ok(conn)
+}
+
+fn process_file_list(file_list: HashSet<PathBuf>, config: &Config, db: Connection) -> Result<(), Box<dyn std::error::Error>>{
+
+    for file in file_list {
         
         let lang_config = match find_language_config(&file, &config) {
             Some(config) => config,
             None => continue
         };
-
         let blocks = parse_file(&file, lang_config)?;
         
-        println!("{:?}", blocks);
-        
-        //add data to database
-
-
+        if blocks.is_some() {
+            store_blocks_to_db(&db, blocks.unwrap())?;
+        }
     }
-
     Ok(())
+}
+
+fn store_blocks_to_db(db: &Connection, blocks: Vec<Block>) -> Result<(), Box<dyn std::error::Error>> {
+    blocks.iter().try_for_each(|block| {
+            db.execute("INSERT INTO blocks (block_name, block_json) values (?1, ?2)",
+                params![&block.info.name, &serde_json::to_string(block)?]
+            )?;
+            Ok(())
+    })
 }
 
 fn remove_ignored_files<'a>(file_list: &mut HashSet<PathBuf>, ignore_glob: GlobSet){
@@ -171,6 +210,3 @@ fn deserialize_config<'a>(config_path: Option<&PathBuf>) -> Result<Config, Box<d
     }
 }
 
-fn run_server() -> Result<(), Box<dyn std::error::Error>> {
-    Ok(())
-}

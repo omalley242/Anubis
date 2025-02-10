@@ -48,8 +48,7 @@ Since Anubis is still under active development, the following instructions outli
     to delineate documentation blocks:
    
     ```rust
-    /*
-    @[Factorial | Function Template]
+    /*@[Factorial | Function Template]
         # Factorial Function
 
         This function calculates the factorial of a number.
