@@ -1,9 +1,9 @@
 
 # Anubis 🏺: A Universal Documentation Generator
 
-Anubis is a work-in-progress documentation generator written in Rust.   
-Create a documentation website by writing a configuration file and adding comments within your code.    
-Using Askama templates for rendering and an extended Markdown format for rich text, Anubis aims to simplify the process of maintaining project documentation. 
+Anubis is a work-in-progress documentation generator written in Rust.
+Create a documentation website by writing a configuration file and adding comments within your code.
+Using Askama templates for rendering and an extended Markdown format for rich text, Anubis aims to simplify the process of maintaining project documentation.
 
 ---
 
@@ -39,14 +39,14 @@ cargo build --release
 
 Since Anubis is still under active development, the following instructions outline the basic intended workflow:
 
-1. **Create a Configuration File:**  
+1. **Create a Configuration File:**
     Place an `config.anubis` (or similar) file in your project root.
     This file will define project-specific settings such as the output directory, template paths, as well as the format of the doc strings.
 
-2. **Annotate Your Code:**  
+2. **Annotate Your Code:**
     Add specially formatted comments to your code. For example, use markers like `@` followed by block information in the format `[{Block Name }|{ Template To Use}]`
     to delineate documentation blocks:
-   
+
     ```rust
     /*@[Factorial | Function Template]
         # Factorial Function
@@ -60,13 +60,13 @@ Since Anubis is still under active development, the following instructions outli
     /*@*/
     ```
 
-3. **Generate the Documentation:**  
+3. **Generate the Documentation:**
    Run the Anubis tool to process the configuration and code comments. An example command might look like:
-   
+
    ```bash
    anubis --config="./path/to/config" all
    ```
-   
+
    This command will parse the annotated comments and generate the website files using the templates.
    Finally it will then host the produced files locally.
 
