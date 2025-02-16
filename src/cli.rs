@@ -44,6 +44,7 @@ pub fn process_cli() -> Result<(), Box<dyn std::error::Error>> {
         Some(Commands::Run) => run_server(&config),
         Some(Commands::All) | None => {
             parse(&config)?;
+            render_files(&config)?;
             run_server(&config)
         }
     }

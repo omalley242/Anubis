@@ -1,4 +1,4 @@
-<!--@[Embed|index|EndPoint]
+<!--@[Embed|index]
 {{Header}}
 @-->
 
