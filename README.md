@@ -1,6 +1,9 @@
+
+<center>
 [![License](https://img.shields.io/github/license/omalley242/Anubis?style=flat-square)](https://github.com/omalley242/Anubis/blob/main/LICENSE)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/omalley242/Anubis/main.yml?style=flat-square)](https://github.com/omalley242/Anubis/actions)
 [![Code Coverage](https://img.shields.io/codecov/c/github/omalley242/Anubis?style=flat-square)](https://codecov.io/gh/omalley242/Anubis)
+</center>
 
 # Anubis 🏺: A Universal Documentation Generator
 
