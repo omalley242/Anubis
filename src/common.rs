@@ -134,7 +134,7 @@ pub fn deserialize_config(
 pub fn extract_file_extenstion(file: &Path) -> Option<&str> {
     let file_os_string = file.file_name()?;
     let file_name_string = file_os_string.to_str()?;
-    return file_name_string.split(".").last();
+    file_name_string.split(".").last()
 }
 
 pub fn find_language_config<'a>(
