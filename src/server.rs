@@ -56,5 +56,4 @@ async fn page_endpoint(
 
 async fn home_page() -> impl IntoResponse {
     // Generate File list
-    //
 }

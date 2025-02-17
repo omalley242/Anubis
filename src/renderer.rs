@@ -1,11 +1,11 @@
-use rusqlite::Connection;
-use tera::{Context, Tera};
-
 use crate::{
     common::{find_language_config, Block, BlockContent, Config},
     db::{get_block, get_page, insert_page, pages_db, retrieve_rows},
 };
+use comrak::{markdown_to_html, ExtensionOptions, Options};
+use rusqlite::Connection;
 use std::path::PathBuf;
+use tera::Tera;
 
 pub fn render_files(config: &Config) -> Result<(), Box<dyn std::error::Error>> {
     let db_con = pages_db()?;
@@ -25,7 +25,6 @@ fn render_page(
     block: &Block,
     tera: &Tera,
 ) -> Result<String, Box<dyn std::error::Error>> {
-    // Check db for page
     let page = get_page(db, &block.info.name);
     if page.is_ok() {
         return page;
@@ -33,19 +32,15 @@ fn render_page(
 
     let mut html_string = String::new();
     for content in &block.content {
-        let render_string = match content {
+        html_string += &match content {
             BlockContent::Code(data) => render_code(data, file_origin, config)?,
             BlockContent::Link(data) => render_link(data, &config),
             BlockContent::Markdown(data) => render_markdown(data),
             BlockContent::Embed(data) => render_embed(data, &db, &config, &file_origin, tera)?,
         };
-        html_string += render_string.as_str();
     }
 
-    let mut context = Context::new();
-    context.insert("content", &html_string);
-    let rendered_page = tera.render(&format!("{}.html", &block.info.template_name), &context)?;
-    insert_page(&db, &block.info.name, &rendered_page)?;
+    insert_page(&db, &block.info.name, &html_string)?;
     Ok(html_string)
 }
 
@@ -55,19 +50,32 @@ fn render_code(
     config: &Config,
 ) -> Result<String, Box<dyn std::error::Error>> {
     let language = &find_language_config(file_origin, config)?.language;
-    return Ok(markdown::to_html(&format!("```{language}{code_string}```")));
+    return Ok(markdown_to_html(
+        &format!("```{language}{code_string}```"),
+        &Options::default(),
+    ));
 }
 
 fn render_link(link_string: &String, config: &Config) -> String {
     let url = &config.url;
-    return markdown::to_html(&format!("[{link_string}]({url}{link_string})"));
+    return markdown_to_html(
+        &format!("[{link_string}]({url}{link_string})"),
+        &Options::default(),
+    );
 }
 
 fn render_markdown(markdown_string: &String) -> String {
-    let string = markdown::to_html(&markdown_string);
-    println!("{markdown_string}");
-    println!("{string}");
-    return markdown::to_html(&markdown_string);
+    return markdown_to_html(
+        &markdown_string,
+        &Options {
+            extension: ExtensionOptions {
+                header_ids: Some("header".to_string()),
+                math_dollars: true,
+                ..Default::default()
+            },
+            ..Default::default()
+        },
+    );
 }
 
 fn render_embed(

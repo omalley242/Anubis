@@ -6,10 +6,11 @@ edition = "2021"
 [dependencies]
 axum = "0.8.1"
 clap = { version = "4.5.27", features = ["derive"] }
+comrak = "0.35.0"
 globset = "0.4.15"
 markdown = "1.0.0-alpha.22"
-markdown-rs = "0.1.0"
 nom = "8.0.0"
+petgraph = { version = "0.7.1", features = ["serde"] }
 rusqlite = { version = "0.33.0", features = ["bundled"] }
 serde = { version = "1.0.217", features = ["derive"] }
 serde_json = "1.0.138"
