@@ -10,14 +10,14 @@
 
 Anubis is a work-in-progress documentation generator written in Rust.
 Create a documentation website by writing a configuration file and adding comments within your code.
-Using Askama templates for rendering and an extended Markdown format for rich text, Anubis aims to simplify the process of maintaining project documentation.
+Using Tera templates for rendering and an github extended Markdown format for rich text, Anubis aims to simplify the process of maintaining project documentation.
 
 ---
 
 ## Features
 
 - **Code Annotation:** Write custom comments in your source files to document functions, modules, and more.
-- **Custom Templates:** Leverage Askama templates to design and customize your documentation website.
+- **Custom Templates:** Leverage Tera templates to design and customize your documentation website.
 - **Extended Markdown:** Enjoy additional Markdown syntax options to enhance your documentation content.
 - **Configuration Driven:** Use a simple configuration file to control how your documentation is generated.
 
@@ -71,7 +71,7 @@ Since Anubis is still under active development, the following instructions outli
    Run the Anubis tool to process the configuration and code comments. An example command might look like:
 
    ```bash
-   anubis --config="./path/to/config" all
+   anubis all
    ```
 
    This command will parse the annotated comments and generate the website files using the templates.
@@ -85,13 +85,22 @@ Below is an example configuration file (`config.anubis`) to help you get started
 
 ```json
 {
+    "url": "http://127.0.0.1:3000/",
     "language_configs": {
         "rs":{
+            "language": "rust",
             "anubis_character": "@",
             "multiline_start": "/*",
             "multiline_end": "*/"
         },
         "md":{
+            "language": "markdown",
+            "anubis_character": "@",
+            "multiline_start": "<!--",
+            "multiline_end": "-->"
+        },
+        "html":{
+            "language": "html",
             "anubis_character": "@",
             "multiline_start": "<!--",
             "multiline_end": "-->"
@@ -103,9 +112,11 @@ Below is an example configuration file (`config.anubis`) to help you get started
         "*.anubis",
         "*lock",
         "*toml",
-        "*.gitignore"
+        "*.gitignore",
+        "*.db"
     ]
 }
+
 ```
 
 ---
