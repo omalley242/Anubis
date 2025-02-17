@@ -29,12 +29,11 @@ jobs:
           toolchain: stable
           override: true
 
-      - name: install openssl
-        uses: awalsh128/cache-apt-pkgs-action@latest
+      - uses: awalsh128/cache-apt-pkgs-action@latest
         with:
-          packages: openssl
+          packages: libssl-dev
           version: 1.0
-      
+
       - name: Run cargo-tarpaulin
         uses: actions-rs/tarpaulin@v0.1
         with:
