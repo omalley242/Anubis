@@ -16,41 +16,26 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: check
-  coverage:
-    name: Tarpaulin Coverage
+
+  test:
+    name: coverage
     runs-on: ubuntu-latest
+    container:
+      image: xd009642/tarpaulin:develop-nightly
+      options: --security-opt seccomp=unconfined
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-
-      - name: Run cargo-tarpaulin
-        uses: awalsh128/cache-apt-pkgs-action@latest
-        with:
-          packages: openssl
-          version: 1.0
-          
-      - uses: actions-rs/tarpaulin@v0.1
-        with:
-          version: '0.15.0'
-          args: '-- --all-features --test-threads 1'
+      - name: Generate code coverage
+        run: |
+          cargo +nightly tarpaulin --verbose --all-features --workspace --timeout 120 --out xml
 
       - name: Upload to codecov.io
-        uses: codecov/codecov-action@v1.0.2
+        uses: codecov/codecov-action@v2
         with:
-          token: ${{secrets.CODECOV_TOKEN}}
-
-      - name: Archive code coverage results
-        uses: actions/upload-artifact@v4
-        with:
-          name: code-coverage-report
-          path: cobertura.xml
-          
+          # token: ${{secrets.CODECOV_TOKEN}} # not required for public repos
+          fail_ci_if_error: true
   fmt:
     name: Rustfmt
     runs-on: ubuntu-latest
