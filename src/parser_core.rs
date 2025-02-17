@@ -103,7 +103,7 @@ fn block(
     )
     .map(|(header, content)| Block {
         info: header,
-        content: content,
+        content,
     })
 }
 

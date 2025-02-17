@@ -6,6 +6,7 @@ use std::{
     collections::HashSet,
     fs::File,
     io::{BufReader, Read},
+    path::Path,
     path::PathBuf,
 };
 use walkdir::WalkDir;
@@ -30,14 +31,14 @@ pub enum BlockContent {
     Embed(String),    // Block to be rendered
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Default)]
 pub struct Config {
     pub url: String,
     pub language_configs: HashMap<String, LanguageConfig>,
     pub anubis_ignore: Vec<String>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Default)]
 pub struct LanguageConfig {
     pub language: String,
     pub anubis_character: String,
@@ -53,30 +54,11 @@ pub struct LanguageConfig {
 /*@[ConfigDefault|index]
 # Config Default
 */
-impl Default for Config {
-    fn default() -> Self {
-        Config {
-            url: String::new(),
-            language_configs: HashMap::new(),
-            anubis_ignore: vec![],
-        }
-    }
-}
 /*@*/
 
 /*@[LanguageConfigDefault|index]
 # Language Config Default
 */
-impl Default for LanguageConfig {
-    fn default() -> Self {
-        LanguageConfig {
-            language: String::new(),
-            anubis_character: String::new(),
-            multiline_start: String::new(),
-            multiline_end: String::new(),
-        }
-    }
-}
 /*@*/
 
 #[derive(Debug, Clone)]
@@ -97,7 +79,7 @@ impl fmt::Display for AnubisError {
 //implement this for each error type
 impl std::error::Error for AnubisError {
     fn cause(&self) -> Option<&dyn Error> {
-        return Some(self);
+        Some(self)
     }
 
     fn description(&self) -> &str {
@@ -111,11 +93,11 @@ impl std::error::Error for AnubisError {
     }
 
     fn source(&self) -> Option<&(dyn Error + 'static)> {
-        return Some(self);
+        Some(self)
     }
 }
 
-pub fn deserialize_config<'a>(
+pub fn deserialize_config(
     config_path: Option<&PathBuf>,
 ) -> Result<Config, Box<dyn std::error::Error>> {
     //Deserialize config file
@@ -125,7 +107,7 @@ pub fn deserialize_config<'a>(
         let contents: &mut String = &mut String::new();
         let _ = config_reader.read_to_string(contents)?;
 
-        return Ok(serde_json::from_str::<Config>(&contents)?);
+        Ok(serde_json::from_str::<Config>(contents)?)
     } else {
         //search the current directory
         for entry in WalkDir::new("./").max_depth(1) {
@@ -143,13 +125,13 @@ pub fn deserialize_config<'a>(
         }
 
         // if not anubis file is found use the default config
-        return Err(Box::new(AnubisError::ConfigError(
+        Err(Box::new(AnubisError::ConfigError(
             "Unable to find anubis config file".to_string(),
-        )));
+        )))
     }
 }
 
-pub fn extract_file_extenstion<'a>(file: &'a PathBuf) -> Option<&'a str> {
+pub fn extract_file_extenstion(file: &Path) -> Option<&str> {
     let file_os_string = file.file_name()?;
     let file_name_string = file_os_string.to_str()?;
     return file_name_string.split(".").last();
