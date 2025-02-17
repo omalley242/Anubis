@@ -84,6 +84,8 @@ pub enum AnubisError {
     ParsingError(String),
     ConfigError(String),
     RecursiveTemplateError(String),
+    PageNotFoundError(String),
+    BlockNotFoundError(String),
 }
 
 impl fmt::Display for AnubisError {
@@ -108,6 +110,8 @@ impl std::error::Error for AnubisError {
             AnubisError::ParsingError(desc) => desc,
             AnubisError::ConfigError(desc) => desc,
             AnubisError::RecursiveTemplateError(desc) => desc,
+            AnubisError::PageNotFoundError(desc) => desc,
+            AnubisError::BlockNotFoundError(desc) => desc,
         }
     }
 

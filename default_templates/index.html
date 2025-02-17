@@ -1,11 +1,22 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-  <head>
-    <meta charset="utf-8">
-    <title>Simple Block</title>
-  </head>
+    <head>
+        <meta charset="utf-8" />
+        <title>Anubis</title>
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.8.1/github-markdown-dark.min.css"
+        />
+    </head>
 
-  <body>
-    <h1>{{ info.name }}</h1>
-  </body>
+    <body class="markdown-body">
+        <h1>{{ content | safe }}</h1>
+    </body>
+
+    <style>
+        .markdown-body {
+            max-width: fit-content;
+            margin-inline: auto;
+        }
+    </style>
 </html>

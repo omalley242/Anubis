@@ -35,17 +35,17 @@ pub enum Commands {
     All,
 }
 
-pub fn process_cli() -> Result<(), Box<dyn std::error::Error>> {
+pub async fn process_cli() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
     let config = deserialize_config(cli.config.as_ref())?;
     match cli.command {
         Some(Commands::Parse) => parse(&config),
         Some(Commands::Render) => render_files(&config),
-        Some(Commands::Run) => run_server(&config),
+        Some(Commands::Run) => run_server().await,
         Some(Commands::All) | None => {
             parse(&config)?;
             render_files(&config)?;
-            run_server(&config)
+            run_server().await
         }
     }
 }
