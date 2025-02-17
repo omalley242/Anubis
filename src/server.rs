@@ -15,7 +15,8 @@ pub async fn run_server() -> Result<(), Box<dyn std::error::Error>> {
     let state = Arc::new(Mutex::new(db));
 
     let app = Router::new()
-        .route("/{Page}", get(page_endpoint))
+        .route("/", get(home_page))
+        .route("/{*Page}", get(page_endpoint))
         .with_state(state);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
@@ -51,4 +52,9 @@ async fn page_endpoint(
         )
             .into_response()
     }
+}
+
+async fn home_page() -> impl IntoResponse {
+    // Generate File list
+    //
 }

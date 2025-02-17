@@ -21,7 +21,6 @@
         }
     },
     "anubis_ignore": [
-        "./src/**",
         "./.git/**",
         "./target/**",
         "*.anubis",

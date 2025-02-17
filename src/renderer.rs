@@ -2,7 +2,7 @@ use rusqlite::Connection;
 use tera::{Context, Tera};
 
 use crate::{
-    common::{Block, BlockContent, Config},
+    common::{find_language_config, Block, BlockContent, Config},
     db::{get_block, get_page, insert_page, pages_db, retrieve_rows},
 };
 use std::path::PathBuf;
@@ -34,7 +34,7 @@ fn render_page(
     let mut html_string = String::new();
     for content in &block.content {
         let render_string = match content {
-            BlockContent::Code(data) => render_code(data),
+            BlockContent::Code(data) => render_code(data, file_origin, config)?,
             BlockContent::Link(data) => render_link(data, &config),
             BlockContent::Markdown(data) => render_markdown(data),
             BlockContent::Embed(data) => render_embed(data, &db, &config, &file_origin, tera)?,
@@ -49,8 +49,13 @@ fn render_page(
     Ok(html_string)
 }
 
-fn render_code(code_string: &String) -> String {
-    return markdown::to_html(&format!("```{}```", code_string));
+fn render_code(
+    code_string: &String,
+    file_origin: &PathBuf,
+    config: &Config,
+) -> Result<String, Box<dyn std::error::Error>> {
+    let language = &find_language_config(file_origin, config)?.language;
+    return Ok(markdown::to_html(&format!("```{language}{code_string}```")));
 }
 
 fn render_link(link_string: &String, config: &Config) -> String {
@@ -59,6 +64,9 @@ fn render_link(link_string: &String, config: &Config) -> String {
 }
 
 fn render_markdown(markdown_string: &String) -> String {
+    let string = markdown::to_html(&markdown_string);
+    println!("{markdown_string}");
+    println!("{string}");
     return markdown::to_html(&markdown_string);
 }
 

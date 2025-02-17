@@ -45,13 +45,13 @@ pub struct LanguageConfig {
     pub multiline_end: String,
 }
 
-/*@[Defaults|DefaultsPage]
-    {{ConfigDefault}}
-    {{LanguageConfigDefault}}
+/*@[Defaults|index]
+{{ConfigDefault}}
+{{LanguageConfigDefault}}
 @*/
 
-/*@[ConfigDefault|Default]
-    # Config Default
+/*@[ConfigDefault|index]
+# Config Default
 */
 impl Default for Config {
     fn default() -> Self {
@@ -64,8 +64,8 @@ impl Default for Config {
 }
 /*@*/
 
-/*@[LanguageConfigDefault|Default]
-    # Language Config Default
+/*@[LanguageConfigDefault|index]
+# Language Config Default
 */
 impl Default for LanguageConfig {
     fn default() -> Self {
