@@ -90,12 +90,7 @@ pub enum AnubisError {
 
 impl fmt::Display for AnubisError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "Error occured when running anubis:
-                {self}
-            "
-        )
+        write!(f, "Error occured when running anubis")
     }
 }
 
@@ -171,6 +166,6 @@ pub fn find_language_config<'a>(
         .ok_or(format!("Config not found for file: {:?}", file).into())
 }
 
-pub fn remove_ignored_files<'a>(file_list: &mut HashSet<PathBuf>, ignore_glob: GlobSet) {
+pub fn remove_ignored_files(file_list: &mut HashSet<PathBuf>, ignore_glob: GlobSet) {
     file_list.retain(|file| !ignore_glob.is_match(file));
 }

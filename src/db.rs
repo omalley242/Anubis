@@ -1,6 +1,7 @@
 use crate::common::{AnubisError, Block};
 use rusqlite::{params, Connection};
 use serde_rusqlite::from_rows;
+use std::path::Path;
 use std::path::PathBuf;
 
 pub fn block_db() -> Result<Connection, Box<dyn std::error::Error>> {
@@ -45,7 +46,7 @@ pub fn open_db() -> Result<Connection, Box<dyn std::error::Error>> {
 pub fn insert_block(
     db: &Connection,
     block: &Block,
-    file_path: &PathBuf,
+    file_path: &Path,
 ) -> Result<(), Box<dyn std::error::Error>> {
     db.execute(
         "insert into blocks (header, file_origin, block_content) values (?1, ?2, ?3)",
@@ -121,5 +122,5 @@ pub fn retrieve_rows(db: &Connection) -> Result<Vec<(PathBuf, Block)>, Box<dyn s
         })
         .collect::<Vec<(PathBuf, Block)>>();
 
-    return Ok(deserialized_rows);
+    Ok(deserialized_rows)
 }

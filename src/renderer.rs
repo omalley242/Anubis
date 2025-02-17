@@ -34,13 +34,13 @@ fn render_page(
     for content in &block.content {
         html_string += &match content {
             BlockContent::Code(data) => render_code(data, file_origin, config)?,
-            BlockContent::Link(data) => render_link(data, &config),
+            BlockContent::Link(data) => render_link(data, config),
             BlockContent::Markdown(data) => render_markdown(data),
-            BlockContent::Embed(data) => render_embed(data, &db, &config, &file_origin, tera)?,
+            BlockContent::Embed(data) => render_embed(data, db, config, file_origin, tera)?,
         };
     }
 
-    insert_page(&db, &block.info.name, &html_string)?;
+    insert_page(db, &block.info.name, &html_string)?;
     Ok(html_string)
 }
 
@@ -50,23 +50,23 @@ fn render_code(
     config: &Config,
 ) -> Result<String, Box<dyn std::error::Error>> {
     let language = &find_language_config(file_origin, config)?.language;
-    return Ok(markdown_to_html(
+    Ok(markdown_to_html(
         &format!("```{language}{code_string}```"),
         &Options::default(),
-    ));
+    ))
 }
 
 fn render_link(link_string: &String, config: &Config) -> String {
     let url = &config.url;
-    return markdown_to_html(
+    markdown_to_html(
         &format!("[{link_string}]({url}{link_string})"),
         &Options::default(),
-    );
+    )
 }
 
-fn render_markdown(markdown_string: &String) -> String {
-    return markdown_to_html(
-        &markdown_string,
+fn render_markdown(markdown_string: &str) -> String {
+    markdown_to_html(
+        markdown_string,
         &Options {
             extension: ExtensionOptions {
                 header_ids: Some("header".to_string()),
@@ -75,7 +75,7 @@ fn render_markdown(markdown_string: &String) -> String {
             },
             ..Default::default()
         },
-    );
+    )
 }
 
 fn render_embed(
@@ -86,5 +86,5 @@ fn render_embed(
     tera: &Tera,
 ) -> Result<String, Box<dyn std::error::Error>> {
     let block = get_block(db, embed_string)?;
-    return render_page(db, config, file_origin, &block, tera);
+    render_page(db, config, file_origin, &block, tera)
 }
