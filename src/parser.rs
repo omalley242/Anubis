@@ -1,10 +1,11 @@
-use crate::common::{find_language_config, remove_ignored_files, Block, Config, LanguageConfig};
-use crate::db::{block_db, insert_block};
+use crate::common::{
+    find_language_config, remove_ignored_files, Anubis, Block, Config, LanguageConfig,
+};
+use crate::db::AnubisDatabase;
 use crate::parser_core::top;
 use core::str;
 use globset::{Glob, GlobSet, GlobSetBuilder};
 use nom::Parser;
-use rusqlite::Connection;
 use std::{
     collections::HashSet,
     fs::File,
@@ -13,26 +14,31 @@ use std::{
 };
 use walkdir::WalkDir;
 
-pub fn parse(config: &Config) -> Result<(), Box<dyn std::error::Error>> {
-    let db_con = block_db()?; //create connection and table
-    let mut file_list = collect_all_files(); //collect all possible files
-    let ignore_glob = generate_ignore_glob(config)?; //create ignore glob
-    remove_ignored_files(&mut file_list, ignore_glob); //apply ignore glob
-    parse_files(file_list, config, &db_con)?; //parse the files and add to db
-    Ok(())
+pub trait AnubisParser {
+    fn parse(&mut self) -> Result<(), Box<dyn std::error::Error>>;
+}
+
+impl AnubisParser for Anubis {
+    fn parse(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        let mut file_list = collect_all_files(); //collect all possible files
+        let ignore_glob = generate_ignore_glob(&self.config)?; //create ignore glob
+        remove_ignored_files(&mut file_list, ignore_glob); //apply ignore glob
+        parse_files(file_list, &self.config, &mut self.database)?; //parse the files and add to db
+        Ok(())
+    }
 }
 
 fn parse_files(
     file_list: HashSet<PathBuf>,
     config: &Config,
-    db: &Connection,
+    db: &mut AnubisDatabase,
 ) -> Result<(), Box<dyn std::error::Error>> {
     for file in file_list {
         let lang_config = find_language_config(&file, config)?;
         if let Some(blocks) = parse_file(&file, lang_config)? {
             blocks
                 .iter()
-                .try_for_each(|block| insert_block(db, block, &file))?;
+                .for_each(|block| db.insert_block(block, lang_config));
         };
     }
     Ok(())

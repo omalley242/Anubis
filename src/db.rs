@@ -1,126 +1,75 @@
-use crate::common::{AnubisError, Block};
-use rusqlite::{params, Connection};
-use serde_rusqlite::from_rows;
-use std::path::Path;
-use std::path::PathBuf;
+use crate::common::{Block, LanguageConfig};
+use serde::{Deserialize, Serialize};
+use std::{
+    collections::{HashMap, HashSet},
+    fs::File,
+    io::BufReader,
+    path::PathBuf,
+};
 
-pub fn block_db() -> Result<Connection, Box<dyn std::error::Error>> {
-    let db = Connection::open("anubis.db")?;
-
-    db.execute("drop table if exists blocks", params![])?;
-    db.execute(
-        "create table if not exists blocks (
-        id integer primary key autoincrement,
-        header text not null unique,
-        file_origin text not null,
-        block_content text not null
-    );
-    ",
-        params![],
-    )?;
-
-    Ok(db)
+// Global AnubisDatabase Should only be initalised once
+#[serde_with::serde_as]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+pub struct AnubisDatabase {
+    pub block_db: HashMap<String, Block>,
+    pub html_db: HashMap<String, String>,
+    pub graph_db: HashMap<String, HashSet<String>>,
+    pub lang_map: HashMap<String, LanguageConfig>,
 }
 
-pub fn pages_db() -> Result<Connection, Box<dyn std::error::Error>> {
-    let db = Connection::open("anubis.db")?;
-
-    db.execute("drop table if exists pages", params![])?;
-    db.execute(
-        "create table if not exists pages (
-        id integer primary key autoincrement,
-        header text not null unique,
-        page_content text not null
-    );
-    ",
-        params![],
-    )?;
-
-    Ok(db)
-}
-
-pub fn open_db() -> Result<Connection, Box<dyn std::error::Error>> {
-    Ok(Connection::open("anubis.db")?)
-}
-
-pub fn insert_block(
-    db: &Connection,
-    block: &Block,
-    file_path: &Path,
-) -> Result<(), Box<dyn std::error::Error>> {
-    db.execute(
-        "insert into blocks (header, file_origin, block_content) values (?1, ?2, ?3)",
-        params![
-            block.info.name,
-            file_path.to_str(),
-            serde_json::to_string(block)?
-        ],
-    )?;
-    Ok(())
-}
-
-pub fn get_block(
-    db: &Connection,
-    header_string: &String,
-) -> Result<Block, Box<dyn std::error::Error>> {
-    let mut statement = db.prepare("select * from blocks where header = (?1)")?;
-    let block = statement.query([header_string])?;
-    let block_data = from_rows::<(usize, String, PathBuf, String)>(block);
-    let block_result = block_data.last();
-
-    if block_result.is_some() {
-        Ok(serde_json::from_str(&block_result.unwrap()?.3)?)
-    } else {
-        Err(AnubisError::BlockNotFoundError(
-            "Block not found in db".to_string(),
-        ))?
+impl AnubisDatabase {
+    pub fn get_block(&self, header: &str) -> Option<&Block> {
+        self.block_db.get(header)
     }
-}
 
-pub fn insert_page(
-    db: &Connection,
-    header_string: &String,
-    page_content: &String,
-) -> Result<(), Box<dyn std::error::Error>> {
-    db.execute(
-        "insert into pages (header, page_content) values (?1, ?2)",
-        params![header_string, page_content],
-    )?;
-    Ok(())
-}
-
-pub fn get_page(
-    db: &Connection,
-    header_string: &String,
-) -> Result<String, Box<dyn std::error::Error>> {
-    let mut statement = db.prepare("select * from pages where header = (?1)")?;
-    let page = statement.query([header_string])?;
-    let page_data = from_rows::<(usize, String, String)>(page);
-    let page_result = page_data.last();
-
-    if page_result.is_some() {
-        Ok(page_result.unwrap()?.2)
-    } else {
-        Err(AnubisError::PageNotFoundError(
-            "Page not found from db".to_string(),
-        ))?
+    pub fn get_html(&self, header: &str) -> Option<&String> {
+        self.html_db.get(header)
     }
-}
 
-pub fn retrieve_rows(db: &Connection) -> Result<Vec<(PathBuf, Block)>, Box<dyn std::error::Error>> {
-    let mut statement = db.prepare("select * from blocks")?;
-    let rows = statement.query([])?;
-    let rows_data = from_rows::<(usize, String, PathBuf, String)>(rows)
-        .collect::<Result<Vec<(usize, String, PathBuf, String)>, _>>()?;
-    let deserialized_rows = rows_data
-        .iter()
-        .map(|data| {
-            (
-                data.2.clone(),
-                serde_json::from_str::<Block>(&data.3).unwrap(),
-            )
-        })
-        .collect::<Vec<(PathBuf, Block)>>();
+    pub fn get_connections(&self, header: &str) -> Option<&HashSet<String>> {
+        self.graph_db.get(header)
+    }
 
-    Ok(deserialized_rows)
+    pub fn get_lang(&self, header: &str) -> Option<&LanguageConfig> {
+        self.lang_map.get(header)
+    }
+
+    pub fn insert_block(&mut self, block: &Block, lang: &LanguageConfig) {
+        let connections = block.content.iter().filter_map(|content| match content {
+            crate::common::BlockContent::Embed(header) => Some(header),
+            crate::common::BlockContent::Link(header) => Some(header),
+            _ => None,
+        });
+
+        connections.for_each(|connection| {
+            self.add_edge_undirected(block.info.name.clone(), connection.to_string());
+        });
+
+        self.lang_map.insert(block.info.name.clone(), lang.clone());
+        self.block_db.insert(block.info.name.clone(), block.clone());
+    }
+
+    pub fn add_edge_undirected(&mut self, node_1: String, node_2: String) {
+        self.add_edge(node_1.clone(), node_2.clone());
+        self.add_edge(node_2, node_1);
+    }
+
+    pub fn add_edge(&mut self, node_1: String, node_2: String) {
+        if let Some(adj_1) = self.graph_db.get_mut(&node_1) {
+            adj_1.insert(node_2.clone());
+        } else {
+            let mut new_matrix = HashSet::new();
+            new_matrix.insert(node_2.clone());
+            self.graph_db.insert(node_1.clone(), new_matrix);
+        }
+    }
+
+    pub fn new(db_path: Option<PathBuf>) -> Result<Self, Box<dyn std::error::Error>> {
+        if let Some(path) = db_path {
+            let file = File::open(path)?;
+            let reader = BufReader::new(file);
+            serde_json::from_reader(reader)?
+        }
+        Ok(AnubisDatabase::default())
+    }
 }

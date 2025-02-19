@@ -1,9 +1,13 @@
-use crate::renderer::render_files;
-use crate::server::run_server;
-use crate::{common::deserialize_config, parser::parse};
+use crate::common::deserialize_config;
+use crate::common::Anubis;
+use crate::db::AnubisDatabase;
+use crate::parser::AnubisParser;
+use crate::renderer::AnubisRenderer;
+use crate::server::AnubisServer;
 
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
+use tera::Tera;
 #[derive(Parser)]
 #[command(name = "Anubis")]
 #[command(version = "0.1")]
@@ -37,15 +41,25 @@ pub enum Commands {
 
 pub async fn process_cli() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
+
     let config = deserialize_config(cli.config.as_ref())?;
+    let database = AnubisDatabase::new(None)?;
+    let tera = Tera::new("./default_templates/**/*.html")?;
+
+    let mut anubis = Anubis {
+        config,
+        database,
+        tera,
+    };
+
     match cli.command {
-        Some(Commands::Parse) => parse(&config),
-        Some(Commands::Render) => render_files(&config),
-        Some(Commands::Run) => run_server().await,
+        Some(Commands::Parse) => anubis.parse(),
+        Some(Commands::Render) => anubis.render(),
+        Some(Commands::Run) => anubis.serve().await,
         Some(Commands::All) | None => {
-            parse(&config)?;
-            render_files(&config)?;
-            run_server().await
+            anubis.parse()?;
+            anubis.render()?;
+            anubis.serve().await
         }
     }
 }

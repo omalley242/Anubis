@@ -1,4 +1,4 @@
-use crate::db::{get_page, open_db};
+use crate::{common::Anubis, db::AnubisDatabase};
 use axum::{
     extract::{self, State},
     http::StatusCode,
@@ -6,38 +6,41 @@ use axum::{
     routing::get,
     Router,
 };
-use rusqlite::Connection;
 use std::sync::Arc;
 use std::sync::Mutex;
 
-pub async fn run_server() -> Result<(), Box<dyn std::error::Error>> {
-    let db = open_db()?;
-    let state = Arc::new(Mutex::new(db));
+pub trait AnubisServer {
+    fn serve(
+        self,
+    ) -> impl std::future::Future<Output = Result<(), Box<dyn std::error::Error>>> + Send;
+}
 
-    let app = Router::new()
-        .route("/", get(home_page))
-        .route("/{*Page}", get(page_endpoint))
-        .with_state(state);
+impl AnubisServer for Anubis {
+    async fn serve(self) -> Result<(), Box<dyn std::error::Error>> {
+        let state = Arc::new(Mutex::new(self.database));
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+        let app = Router::new()
+            .route("/", get(home_page))
+            .route("/{*Page}", get(page_endpoint))
+            .with_state(state);
 
-    Ok(())
+        let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+        axum::serve(listener, app).await.unwrap();
+
+        Ok(())
+    }
 }
 
 async fn page_endpoint(
-    State(state): State<Arc<Mutex<Connection>>>,
+    State(state): State<Arc<Mutex<AnubisDatabase>>>,
     extract::Path(page_name): extract::Path<String>,
 ) -> impl IntoResponse {
-    println!("{}", page_name);
-    let state_access = state.lock(); //obtain access over the database connection
+    let state_access = state.lock(); //obtain access over the AnubisDatabase connection
     if state_access.is_ok() {
-        let db = state_access.unwrap();
-        let page_result = get_page(&db, &page_name);
+        let database = state_access.unwrap();
 
-        if page_result.is_ok() {
-            let page = page_result.unwrap();
-            Html(page).into_response()
+        if let Some(page) = database.get_html(&page_name) {
+            Html(page.clone()).into_response()
         } else {
             (
                 StatusCode::INTERNAL_SERVER_ERROR,

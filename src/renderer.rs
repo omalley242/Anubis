@@ -1,55 +1,82 @@
+use std::collections::HashMap;
+
 use crate::{
-    common::{find_language_config, Block, BlockContent, Config},
-    db::{get_block, get_page, insert_page, pages_db, retrieve_rows},
+    common::{Anubis, AnubisError, Block, BlockContent, Config, LanguageConfig},
+    db::AnubisDatabase,
 };
 use comrak::{markdown_to_html, ExtensionOptions, Options};
-use rusqlite::Connection;
-use std::path::PathBuf;
-use tera::Tera;
+use tera::{Context, Tera};
 
-pub fn render_files(config: &Config) -> Result<(), Box<dyn std::error::Error>> {
-    let db_con = pages_db()?;
-    let rows = retrieve_rows(&db_con)?;
-    let tera = Tera::new("default_templates/**/*.html")?;
-    rows.iter().try_for_each(|row| {
-        render_page(&db_con, config, &row.0, &row.1, &tera)?;
-        Ok::<(), Box<dyn std::error::Error>>(())
-    })?;
-    Ok(())
+pub trait AnubisRenderer {
+    fn render(&mut self) -> Result<(), Box<dyn std::error::Error>>;
 }
 
-fn render_page(
-    db: &Connection,
+impl AnubisRenderer for Anubis {
+    fn render(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        self.database.html_db = self
+            .database
+            .block_db
+            .iter()
+            .map(|(header, block)| {
+                Ok((
+                    header.clone(),
+                    render_block(&self.database, &self.config, &self.tera, block)?,
+                ))
+            })
+            .collect::<Result<HashMap<String, String>, Box<dyn std::error::Error>>>()?;
+        Ok(())
+    }
+}
+
+fn render_block(
+    database: &AnubisDatabase,
     config: &Config,
-    file_origin: &PathBuf,
-    block: &Block,
     tera: &Tera,
+    block: &Block,
 ) -> Result<String, Box<dyn std::error::Error>> {
-    let page = get_page(db, &block.info.name);
-    if page.is_ok() {
-        return page;
+    if let Some(html) = database.get_html(&block.info.name) {
+        return Ok(html.clone());
     }
 
+    let language_config = database
+        .get_lang(&block.info.name)
+        .ok_or(AnubisError::ConfigError(
+            "Language Config not found".to_string(),
+        ))?;
+
     let mut html_string = String::new();
+
     for content in &block.content {
         html_string += &match content {
-            BlockContent::Code(data) => render_code(data, file_origin, config)?,
+            BlockContent::Code(data) => render_code(data, language_config)?,
             BlockContent::Link(data) => render_link(data, config),
             BlockContent::Markdown(data) => render_markdown(data),
-            BlockContent::Embed(data) => render_embed(data, db, config, file_origin, tera)?,
+            BlockContent::Embed(data) => render_embed(data, database, config, tera)?,
         };
     }
 
-    insert_page(db, &block.info.name, &html_string)?;
-    Ok(html_string)
+    let mut context = Context::new();
+    context.insert("html", &html_string);
+
+    let neighbors =
+        database
+            .get_connections(&block.info.name)
+            .ok_or(AnubisError::ConnectionsNotFound(
+                "Block not found in graph".to_string(),
+            ))?;
+
+    context.insert("neighbors", &neighbors);
+    context.insert("html", &html_string);
+
+    let rendered_string = tera.render(&format!("{}.html", block.info.template_name), &context)?;
+    Ok(rendered_string)
 }
 
 fn render_code(
     code_string: &String,
-    file_origin: &PathBuf,
-    config: &Config,
+    lang_config: &LanguageConfig,
 ) -> Result<String, Box<dyn std::error::Error>> {
-    let language = &find_language_config(file_origin, config)?.language;
+    let language = lang_config.language.clone();
     Ok(markdown_to_html(
         &format!("```{language}{code_string}```"),
         &Options::default(),
@@ -79,12 +106,16 @@ fn render_markdown(markdown_string: &str) -> String {
 }
 
 fn render_embed(
-    embed_string: &String,
-    db: &Connection,
+    embed_string: &str,
+    database: &AnubisDatabase,
     config: &Config,
-    file_origin: &PathBuf,
     tera: &Tera,
 ) -> Result<String, Box<dyn std::error::Error>> {
-    let block = get_block(db, embed_string)?;
-    render_page(db, config, file_origin, &block, tera)
+    if let Some(block) = database.get_block(embed_string) {
+        render_block(database, config, tera, block)
+    } else {
+        Err(AnubisError::BlockNotFoundError(
+            "Could not find block in database".to_string(),
+        ))?
+    }
 }

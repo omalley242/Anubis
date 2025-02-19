@@ -9,7 +9,16 @@ use std::{
     path::Path,
     path::PathBuf,
 };
+use tera::Tera;
 use walkdir::WalkDir;
+
+use crate::db::AnubisDatabase;
+
+pub struct Anubis {
+    pub database: AnubisDatabase,
+    pub config: Config,
+    pub tera: Tera,
+}
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct BlockInfo {
@@ -38,7 +47,7 @@ pub struct Config {
     pub anubis_ignore: Vec<String>,
 }
 
-#[derive(Debug, Deserialize, Serialize, Default)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize, Default)]
 pub struct LanguageConfig {
     pub language: String,
     pub anubis_character: String,
@@ -46,20 +55,18 @@ pub struct LanguageConfig {
     pub multiline_end: String,
 }
 
-/*@[Defaults|index]
+/*@[Defaults|page]
 {{ConfigDefault}}
 {{LanguageConfigDefault}}
 @*/
 
-/*@[ConfigDefault|index]
+/*@[ConfigDefault|struct]
 # Config Default
-*/
-/*@*/
+@*/
 
-/*@[LanguageConfigDefault|index]
+/*@[LanguageConfigDefault|struct]
 # Language Config Default
-*/
-/*@*/
+@*/
 
 #[derive(Debug, Clone)]
 pub enum AnubisError {
@@ -68,6 +75,7 @@ pub enum AnubisError {
     RecursiveTemplateError(String),
     PageNotFoundError(String),
     BlockNotFoundError(String),
+    ConnectionsNotFound(String),
 }
 
 impl fmt::Display for AnubisError {
@@ -89,6 +97,7 @@ impl std::error::Error for AnubisError {
             AnubisError::RecursiveTemplateError(desc) => desc,
             AnubisError::PageNotFoundError(desc) => desc,
             AnubisError::BlockNotFoundError(desc) => desc,
+            AnubisError::ConnectionsNotFound(desc) => desc,
         }
     }
 

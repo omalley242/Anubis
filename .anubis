@@ -21,6 +21,7 @@
         }
     },
     "anubis_ignore": [
+        "*.yml",
         "./.git/**",
         "./target/**",
         "*.anubis",

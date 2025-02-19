@@ -9,7 +9,7 @@ The parser is a section that processes each of the files that may have a block a
 
 ## Renderer:
 
-This stage takes from the database any parsed blocks and processes them into three individual data structures:
+This stage takes from the AnubisDatabase any parsed blocks and processes them into three individual data structures:
 
 - Connections Graph:
 
