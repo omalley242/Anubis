@@ -23,15 +23,62 @@
     </script>
 
     <body class="markdown-body">
-        <h1>{{ html | safe }}</h1>
-        <h1>{{ neighbors }}</h1>
+        <div class="container">
+            <header class="header">Header</header>
+            <main class="main-content">
+                <div class="markdown-content">{{html | safe}}</div>
+            </main>
+            <aside class="sidebar">
+                <h2>Related Pages</h2>
+                {% for neighbor in neighbors %}
+                <div>
+                    <p><a href="/{{ neighbor }}">{{ neighbor }}</a></p>
+                </div>
+                {% endfor %}
+            </aside>
+        </div>
     </body>
 
     <style>
-        .markdown-body {
-            min-width: 40%;
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            display: grid;
+            grid-template-areas:
+                "header header"
+                "sidebar main";
+            grid-template-columns: 0.5fr 3fr;
+            grid-template-rows: auto 1fr;
+            height: 100vh;
+        }
+
+        .header {
+            grid-area: header;
+            background-color: #16191f;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .main-content {
+            grid-area: main;
+            padding: 20px;
+            justify-content: center;
+        }
+
+        .markdown-content {
             max-width: fit-content;
-            margin-inline: auto;
+            min-width: 40%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .sidebar {
+            grid-area: sidebar;
+            background-color: #12151b;
+            padding: 20px;
         }
     </style>
 </html>

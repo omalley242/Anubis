@@ -6,6 +6,7 @@ use std::{
     io::BufReader,
     path::PathBuf,
 };
+use tera::Context;
 
 // Global AnubisDatabase Should only be initalised once
 #[serde_with::serde_as]
@@ -32,6 +33,13 @@ impl AnubisDatabase {
 
     pub fn get_lang(&self, header: &str) -> Option<&LanguageConfig> {
         self.lang_map.get(header)
+    }
+
+    pub fn get_context(&self, header: &str) -> Option<Context> {
+        let mut context = Context::new();
+        context.insert("html", self.get_html(header)?);
+        context.insert("neighbors", self.get_connections(header)?);
+        Some(context)
     }
 
     pub fn insert_block(&mut self, block: &Block, lang: &LanguageConfig) {

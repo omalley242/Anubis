@@ -1,4 +1,4 @@
-use crate::{common::Anubis, db::AnubisDatabase};
+use crate::common::Anubis;
 use axum::{
     extract::{self, State},
     http::StatusCode,
@@ -17,7 +17,7 @@ pub trait AnubisServer {
 
 impl AnubisServer for Anubis {
     async fn serve(self) -> Result<(), Box<dyn std::error::Error>> {
-        let state = Arc::new(Mutex::new(self.database));
+        let state = Arc::new(Mutex::new(self));
 
         let app = Router::new()
             .route("/", get(home_page))
@@ -32,29 +32,24 @@ impl AnubisServer for Anubis {
 }
 
 async fn page_endpoint(
-    State(state): State<Arc<Mutex<AnubisDatabase>>>,
+    State(state): State<Arc<Mutex<Anubis>>>,
     extract::Path(page_name): extract::Path<String>,
 ) -> impl IntoResponse {
     let state_access = state.lock(); //obtain access over the AnubisDatabase connection
     if state_access.is_ok() {
-        let database = state_access.unwrap();
-
-        if let Some(page) = database.get_html(&page_name) {
-            Html(page.clone()).into_response()
-        } else {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Unable to access page".to_string(),
-            )
-                .into_response()
+        let anubis = state_access.unwrap();
+        if let Some(context) = anubis.database.get_context(&page_name) {
+            if let Ok(rendered_page) = anubis.tera.render("page.html", &context) {
+                return Html(rendered_page).into_response();
+            }
         }
-    } else {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "Unable to access db".to_string(),
-        )
-            .into_response()
     }
+
+    (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        "Unable to access db".to_string(),
+    )
+        .into_response()
 }
 
 async fn home_page() -> impl IntoResponse {

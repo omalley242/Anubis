@@ -1,14 +1,8 @@
 use core::str;
 use globset::GlobSet;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, error::Error, fmt};
-use std::{
-    collections::HashSet,
-    fs::File,
-    io::{BufReader, Read},
-    path::Path,
-    path::PathBuf,
-};
+use std::{collections::HashMap, fmt};
+use std::{collections::HashSet, fs::File, io::BufReader, path::Path, path::PathBuf};
 use tera::Tera;
 use walkdir::WalkDir;
 
@@ -55,19 +49,15 @@ pub struct LanguageConfig {
     pub multiline_end: String,
 }
 
-/*@[Defaults|page]
-{{ConfigDefault}}
-{{LanguageConfigDefault}}
+/*@[Anubis Error|join]
+{{AnubisErrorEnum}}
+{{AnubisErrorImpls}}
 @*/
 
-/*@[ConfigDefault|struct]
-# Config Default
-@*/
-
-/*@[LanguageConfigDefault|struct]
-# Language Config Default
-@*/
-
+/*@[AnubisErrorEnum|Enum]
+# Anubis Error
+Implements a typed enum containing an error message
+*/
 #[derive(Debug, Clone)]
 pub enum AnubisError {
     ParsingError(String),
@@ -76,20 +66,21 @@ pub enum AnubisError {
     PageNotFoundError(String),
     BlockNotFoundError(String),
     ConnectionsNotFound(String),
+    ContextError(String),
 }
+/*@*/
 
+/*@[AnubisErrorImpls|Impl]
+# Anubis Error implementations
+Traits that have been implemented for the Anubis Error Type
+*/
 impl fmt::Display for AnubisError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Error occured when running anubis")
     }
 }
 
-//implement this for each error type
 impl std::error::Error for AnubisError {
-    fn cause(&self) -> Option<&dyn Error> {
-        Some(self)
-    }
-
     fn description(&self) -> &str {
         match self {
             AnubisError::ParsingError(desc) => desc,
@@ -98,42 +89,29 @@ impl std::error::Error for AnubisError {
             AnubisError::PageNotFoundError(desc) => desc,
             AnubisError::BlockNotFoundError(desc) => desc,
             AnubisError::ConnectionsNotFound(desc) => desc,
+            AnubisError::ContextError(desc) => desc,
         }
     }
-
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        Some(self)
-    }
 }
+/*@*/
 
 pub fn deserialize_config(
     config_path: Option<&PathBuf>,
 ) -> Result<Config, Box<dyn std::error::Error>> {
-    //Deserialize config file
     if config_path.is_some() {
         let config_file = File::open(config_path.unwrap())?;
-        let mut config_reader = BufReader::new(config_file);
-        let contents: &mut String = &mut String::new();
-        let _ = config_reader.read_to_string(contents)?;
-
-        Ok(serde_json::from_str::<Config>(contents)?)
+        let config_reader = BufReader::new(config_file);
+        Ok(serde_json::from_reader(config_reader)?)
     } else {
-        //search the current directory
         for entry in WalkDir::new("./").max_depth(1) {
             let file = &entry?.into_path();
-
-            let extenstion = match extract_file_extenstion(file) {
-                Some(extenstion) => extenstion,
-                None => continue,
+            if let Some(extenstion) = extract_file_extenstion(file) {
+                if extenstion == "anubis" {
+                    return deserialize_config(Some(file));
+                }
             };
-
-            //if the file extenstion is .anubis deserialize the config
-            if extenstion == "anubis" {
-                return deserialize_config(Some(file));
-            }
         }
 
-        // if not anubis file is found use the default config
         Err(Box::new(AnubisError::ConfigError(
             "Unable to find anubis config file".to_string(),
         )))

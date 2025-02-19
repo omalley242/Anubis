@@ -7,6 +7,7 @@ edition = "2021"
 axum = "0.8.1"
 clap = { version = "4.5.27", features = ["derive"] }
 comrak = "0.35.0"
+derive_more = { version = "2.0.1", features = ["display"] }
 globset = "0.4.15"
 markdown = "1.0.0-alpha.22"
 nom = "8.0.0"
