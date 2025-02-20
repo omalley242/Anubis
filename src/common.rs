@@ -1,52 +1,39 @@
 use core::str;
 use globset::GlobSet;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fmt};
+use std::fmt;
+use std::io::Read;
 use std::{collections::HashSet, fs::File, io::BufReader, path::Path, path::PathBuf};
 use tera::Tera;
 use walkdir::WalkDir;
 
+use crate::config::AnubisConfig;
 use crate::db::AnubisDatabase;
 
 pub struct Anubis {
     pub database: AnubisDatabase,
-    pub config: Config,
+    pub config: AnubisConfig,
     pub tera: Tera,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct BlockInfo {
-    pub name: String,          //Page Name
-    pub template_name: String, //Template to use when rendering
+    pub name: String,
+    pub template_name: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Block {
     pub info: BlockInfo,
-    pub content: Vec<BlockContent>, //the markdown content within the block
+    pub content: Vec<BlockContent>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum BlockContent {
-    Markdown(String), // Markdown content
-    Code(String),     // Code string
-    Link(String),     // Link to anotherblock
-    Embed(String),    // Block to be rendered
-}
-
-#[derive(Debug, Deserialize, Serialize, Default)]
-pub struct Config {
-    pub url: String,
-    pub language_configs: HashMap<String, LanguageConfig>,
-    pub anubis_ignore: Vec<String>,
-}
-
-#[derive(Debug, Clone, PartialEq, Deserialize, Serialize, Default)]
-pub struct LanguageConfig {
-    pub language: String,
-    pub anubis_character: String,
-    pub multiline_start: String,
-    pub multiline_end: String,
+    Markdown(String),
+    Code(String),
+    Link(String),
+    Embed(String),
 }
 
 /*@[Anubis Error|join]
@@ -95,46 +82,29 @@ impl std::error::Error for AnubisError {
 }
 /*@*/
 
-pub fn deserialize_config(
-    config_path: Option<&PathBuf>,
-) -> Result<Config, Box<dyn std::error::Error>> {
-    if config_path.is_some() {
-        let config_file = File::open(config_path.unwrap())?;
-        let config_reader = BufReader::new(config_file);
-        Ok(serde_json::from_reader(config_reader)?)
-    } else {
-        for entry in WalkDir::new("./").max_depth(1) {
-            let file = &entry?.into_path();
-            if let Some(extenstion) = extract_file_extenstion(file) {
-                if extenstion == "anubis" {
-                    return deserialize_config(Some(file));
-                }
-            };
-        }
-
-        Err(Box::new(AnubisError::ConfigError(
-            "Unable to find anubis config file".to_string(),
-        )))
-    }
-}
-
 pub fn extract_file_extenstion(file: &Path) -> Option<&str> {
     let file_os_string = file.file_name()?;
     let file_name_string = file_os_string.to_str()?;
     file_name_string.split(".").last()
 }
 
-pub fn find_language_config<'a>(
-    file: &PathBuf,
-    config: &'a Config,
-) -> Result<&'a LanguageConfig, Box<dyn std::error::Error>> {
-    let file_extenstion = extract_file_extenstion(file).ok_or("No File Extenstion Supplied")?;
-    config
-        .language_configs
-        .get(file_extenstion)
-        .ok_or(format!("Config not found for file: {:?}", file).into())
-}
-
 pub fn remove_ignored_files(file_list: &mut HashSet<PathBuf>, ignore_glob: GlobSet) {
     file_list.retain(|file| !ignore_glob.is_match(file));
+}
+
+pub fn read_file(file_path: &Path) -> Result<String, Box<dyn std::error::Error>> {
+    let file_to_parse = File::open(file_path)?;
+    let mut file_reader = BufReader::new(file_to_parse);
+    let mut file_contents = String::new();
+    let _ = file_reader.read_to_string(&mut file_contents)?;
+    Ok(file_contents)
+}
+
+pub fn collect_all_files() -> HashSet<PathBuf> {
+    WalkDir::new("./")
+        .into_iter()
+        .filter_map(|file| file.ok())
+        .filter(|file| file.path().is_file())
+        .map(|file| file.path().to_path_buf())
+        .collect::<HashSet<PathBuf>>()
 }

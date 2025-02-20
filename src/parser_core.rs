@@ -1,4 +1,5 @@
-use crate::common::{Block, BlockContent, BlockInfo, LanguageConfig};
+use crate::common::{Block, BlockContent, BlockInfo};
+use crate::config::LanguageConfig;
 use nom::character::anychar;
 use nom::sequence::delimited;
 use nom::IResult;
@@ -107,7 +108,7 @@ fn block(
     })
 }
 
-pub fn top(
+pub fn file_parser(
     language_config: &LanguageConfig,
 ) -> impl Parser<&str, Output = Vec<Block>, Error = error::Error<&str>> {
     many1(alt((

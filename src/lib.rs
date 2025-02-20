@@ -1,5 +1,6 @@
 pub mod cli;
 pub mod common;
+pub mod config;
 pub mod db;
 pub mod parser;
 pub mod parser_core;

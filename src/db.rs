@@ -1,21 +1,26 @@
-use crate::common::{Block, LanguageConfig};
+use crate::{common::Block, config::LanguageConfig};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{HashMap, HashSet},
     fs::File,
-    io::BufReader,
+    io::{BufReader, BufWriter},
     path::PathBuf,
 };
 use tera::Context;
+
+pub type BlockDB = HashMap<String, Block>;
+pub type HtmlDB = HashMap<String, String>;
+pub type GraphDB = HashMap<String, HashSet<String>>;
+pub type LangDB = HashMap<String, LanguageConfig>;
 
 // Global AnubisDatabase Should only be initalised once
 #[serde_with::serde_as]
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct AnubisDatabase {
-    pub block_db: HashMap<String, Block>,
-    pub html_db: HashMap<String, String>,
-    pub graph_db: HashMap<String, HashSet<String>>,
-    pub lang_map: HashMap<String, LanguageConfig>,
+    pub block_db: BlockDB,
+    pub html_db: HtmlDB,
+    pub graph_db: GraphDB,
+    pub lang_db: LangDB,
 }
 
 impl AnubisDatabase {
@@ -32,7 +37,7 @@ impl AnubisDatabase {
     }
 
     pub fn get_lang(&self, header: &str) -> Option<&LanguageConfig> {
-        self.lang_map.get(header)
+        self.lang_db.get(header)
     }
 
     pub fn get_context(&self, header: &str) -> Option<Context> {
@@ -53,8 +58,14 @@ impl AnubisDatabase {
             self.add_edge_undirected(block.info.name.clone(), connection.to_string());
         });
 
-        self.lang_map.insert(block.info.name.clone(), lang.clone());
+        self.lang_db.insert(block.info.name.clone(), lang.clone());
         self.block_db.insert(block.info.name.clone(), block.clone());
+    }
+
+    pub fn insert_blocks(&mut self, blocks: Vec<Block>, lang: &LanguageConfig) {
+        blocks
+            .iter()
+            .for_each(|block| self.insert_block(block, lang));
     }
 
     pub fn add_edge_undirected(&mut self, node_1: String, node_2: String) {
@@ -72,11 +83,21 @@ impl AnubisDatabase {
         }
     }
 
+    pub fn insert_html(&mut self, header: String, html_string: String) {
+        self.html_db.insert(header, html_string);
+    }
+
+    pub fn save(&self, db_path: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let file = File::create(db_path)?;
+        let writer = BufWriter::new(file);
+        Ok(serde_json::to_writer(writer, self)?)
+    }
+
     pub fn new(db_path: Option<PathBuf>) -> Result<Self, Box<dyn std::error::Error>> {
         if let Some(path) = db_path {
             let file = File::open(path)?;
             let reader = BufReader::new(file);
-            serde_json::from_reader(reader)?
+            return Ok(serde_json::from_reader(reader)?);
         }
         Ok(AnubisDatabase::default())
     }

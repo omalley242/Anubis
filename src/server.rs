@@ -4,10 +4,11 @@ use axum::{
     http::StatusCode,
     response::{Html, IntoResponse},
     routing::get,
-    Router,
+    Json, Router,
 };
 use std::sync::Arc;
 use std::sync::Mutex;
+use tera::Context;
 
 pub trait AnubisServer {
     fn serve(
@@ -21,6 +22,7 @@ impl AnubisServer for Anubis {
 
         let app = Router::new()
             .route("/", get(home_page))
+            .route("/get/graph", get(graph))
             .route("/{*Page}", get(page_endpoint))
             .with_state(state);
 
@@ -52,6 +54,34 @@ async fn page_endpoint(
         .into_response()
 }
 
-async fn home_page() -> impl IntoResponse {
-    // Generate File list
+async fn graph(State(state): State<Arc<Mutex<Anubis>>>) -> impl IntoResponse {
+    let state_access = state.lock();
+    if state_access.is_ok() {
+        let anubis = state_access.unwrap();
+        if let Ok(graph) = serde_json::to_string(&anubis.database.graph_db) {
+            return Json(graph).into_response();
+        }
+    }
+
+    (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        "Unable to access graph db".to_string(),
+    )
+        .into_response()
+}
+
+async fn home_page(State(state): State<Arc<Mutex<Anubis>>>) -> impl IntoResponse {
+    let state_access = state.lock();
+    if state_access.is_ok() {
+        let anubis = state_access.unwrap();
+        if let Ok(rendered_page) = anubis.tera.render("index.html", &Context::new()) {
+            return Html(rendered_page).into_response();
+        }
+    }
+
+    (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        "Unable to access graph db".to_string(),
+    )
+        .into_response()
 }
