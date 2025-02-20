@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::{
     common::{Anubis, AnubisError, Block, BlockContent},
     config::LanguageConfig,
@@ -21,6 +23,19 @@ pub trait AnubisRenderer {
         &self,
         embed_string: &str,
     ) -> Result<(String, String), Box<dyn std::error::Error>>;
+    fn render_block_contents(
+        &self,
+        block: &Block,
+        language_config: &LanguageConfig,
+    ) -> Result<String, Box<dyn std::error::Error>>;
+    fn apply_template(
+        &self,
+        html: &str,
+        neighbors: &HashSet<String>,
+        template_name: &str,
+    ) -> Result<String, tera::Error>;
+    fn get_language_config(&self, header: &str) -> Result<&LanguageConfig, AnubisError>;
+    fn get_neighbors(&self, header: &str) -> Result<&HashSet<String>, AnubisError>;
 }
 
 impl AnubisRenderer for Anubis {
@@ -36,32 +51,53 @@ impl AnubisRenderer for Anubis {
 
     fn render_block(&self, block: &Block) -> Result<(String, String), Box<dyn std::error::Error>> {
         let header = &block.info.name;
+        let language_config = self.get_language_config(header)?;
+        let html_string = self.render_block_contents(block, language_config)?;
+        let neighbors = self.get_neighbors(header)?;
+        let rendered_string =
+            self.apply_template(&html_string, neighbors, &block.info.template_name)?;
+        Ok((header.clone(), rendered_string))
+    }
 
-        let language_config = self
-            .database
+    fn get_language_config(&self, header: &str) -> Result<&LanguageConfig, AnubisError> {
+        self.database
             .get_lang(header)
-            .ok_or(AnubisError::ConfigError(
-                "Language Config not found".to_string(),
-            ))?;
+            .ok_or(AnubisError::ConnectionsNotFound(
+                "Config Not Found in DB".to_string(),
+            ))
+    }
 
-        let html_string = &block
+    fn get_neighbors(&self, header: &str) -> Result<&HashSet<String>, AnubisError> {
+        self.database
+            .get_connections(header)
+            .ok_or(AnubisError::ConnectionsNotFound(
+                "Block not found in graph".to_string(),
+            ))
+    }
+
+    fn apply_template(
+        &self,
+        html: &str,
+        neighbors: &HashSet<String>,
+        template_name: &str,
+    ) -> Result<String, tera::Error> {
+        let mut context = Context::new();
+        context.insert("html", html);
+        context.insert("neighbors", neighbors);
+        self.tera
+            .render(&format!("{}.html", template_name), &context)
+    }
+
+    fn render_block_contents(
+        &self,
+        block: &Block,
+        language_config: &LanguageConfig,
+    ) -> Result<String, Box<dyn std::error::Error>> {
+        block
             .content
             .iter()
             .map(|content| self.render_block_content(content, language_config))
-            .collect::<Result<String, Box<dyn std::error::Error>>>()?;
-
-        let neighbors = self.database.get_connections(&block.info.name).ok_or(
-            AnubisError::ConnectionsNotFound("Block not found in graph".to_string()),
-        )?;
-
-        let mut context = Context::new();
-        context.insert("html", &html_string);
-        context.insert("neighbors", &neighbors);
-        let rendered_string = self
-            .tera
-            .render(&format!("{}.html", block.info.template_name), &context)?;
-
-        Ok((header.clone(), rendered_string))
+            .collect::<Result<String, Box<dyn std::error::Error>>>()
     }
 
     fn render_block_content(
@@ -69,13 +105,12 @@ impl AnubisRenderer for Anubis {
         content: &BlockContent,
         language_config: &LanguageConfig,
     ) -> Result<String, Box<dyn std::error::Error>> {
-        let string_content = match content {
+        Ok(match content {
             BlockContent::Code(data) => Self::render_code(data, language_config),
             BlockContent::Markdown(data) => Self::render_markdown(data),
             BlockContent::Link(data) => self.render_link(data),
             BlockContent::Embed(data) => self.render_embed(data)?.1,
-        };
-        Ok(string_content)
+        })
     }
 
     fn render_code(code_string: &str, lang_config: &LanguageConfig) -> String {
