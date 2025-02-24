@@ -1,18 +1,35 @@
-<div align="center" >
+<div align="center">
+    
+# **WIP** 🚨 🚧 🚨 **WIP**
+This project is currently still work in progress, it is actively maintained and getting consistent updates.
 
+</div>
+
+# Anubis 🏺: A Language Agnostic Documentation Site Generator
+
+<div align="center" >
+    
 [![License](https://img.shields.io/github/license/omalley242/Anubis?style=flat-square)](https://github.com/omalley242/Anubis/blob/main/LICENSE)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/omalley242/Anubis/main.yml?style=flat-square)](https://github.com/omalley242/Anubis/actions)
 [![Code Coverage](https://img.shields.io/codecov/c/github/omalley242/Anubis?style=flat-square)](https://codecov.io/gh/omalley242/Anubis)
 
 </div>
 
-# Anubis 🏺: A Universal Documentation Generator
+Anubis      
 
-Anubis is a work-in-progress documentation generator written in Rust.
-Create a documentation website by writing a configuration file and adding comments within your code.
-Using Tera templates for rendering and an github extended Markdown format for rich text, Anubis aims to simplify the process of maintaining project documentation.
 
 ---
+
+## Table of Contents
+
+- [Features](#features)
+- [Installation](#installation)
+    - [Prerequisites](#prerequisites)
+    - [Build](#build)  
+- [Usage](#usage)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Features
 
@@ -30,7 +47,7 @@ Using Tera templates for rendering and an github extended Markdown format for ri
 - [Rust](https://www.rust-lang.org/tools/install) (Latest stable version is recommended)
 - [Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html) (Installed with Rust)
 
-### Building from Source
+### Build
 
 Clone the repository and build the project using Cargo:
 
@@ -47,19 +64,56 @@ cargo build --release
 Since Anubis is still under active development, the following instructions outline the basic intended workflow:
 
 1. **Create a Configuration File:**
-    Place an `config.anubis` (or similar) file in your project root.
+    Place a config file (ending in `.anubis`) in your project root, containing a json config.
     This file will define project-specific settings such as the output directory, template paths, as well as the format of the doc strings.
 
-2. **Annotate Your Code:**
-    Add specially formatted comments to your code. For example, use markers like `@` followed by block information in the format `[{Block Name }|{ Template To Use}]`
-    to delineate documentation blocks:
+    ```json
+    {
+        "url": "http://127.0.0.1:3000/",
+        "template_directory": "path/to/templates/"
+        "language_configs": {
+            "rs":{
+                "language": "rust",
+                "anubis_character": "@",
+                "multiline_start": "/*",
+                "multiline_end": "*/"
+            },
+            "md":{
+                "language": "markdown",
+                "anubis_character": "@",
+                "multiline_start": "<!--",
+                "multiline_end": "-->"
+            },
+            "html":{
+                "language": "html",
+                "anubis_character": "@",
+                "multiline_start": "<!--",
+                "multiline_end": "-->"
+            }
+        },
+        "anubis_ignore": [
+            "./.git/**",
+            "./target/**",
+            "*.anubis",
+            "*lock",
+            "*toml",
+            "*.gitignore",
+            "*.db"
+        ]
+    }
+    
+    ```
+
+3. **Annotate Your Code:**
+    Add specially formatted comments to your code. For example here is a block that defines a function and adds argument type information as well as a small description:
 
     ```rust
-    /*@[Factorial | Function Template]
-        # Factorial Function
-
+    /*@[Factorial Function|FunctionTemplate{args: {n: "u32"}, return: "u32"}]
+        # MarkDown Content
+    
         This function calculates the factorial of a number.
         It uses a recursive approach.
+
     */
     fn factorial(n: u32) -> u32 {
         if n <= 1 { 1 } else { n * factorial(n - 1) }
@@ -67,57 +121,18 @@ Since Anubis is still under active development, the following instructions outli
     /*@*/
     ```
 
-3. **Generate the Documentation:**
-   Run the Anubis tool to process the configuration and code comments. An example command might look like:
+4. **Run the Cli:**
+   Run the Anubis tool to process the configuration and code comments. The cli runs 3 stages of processing on the files to allow for caching of results:
 
    ```bash
-   anubis all
+   anubis parse   # Parse all the files and extract the blocks within the comments
+   anubis render  # Render the blocks stored within the cache
+   anubis serve   # Serve the rendered blocks from within the cache into a site
+   anubis all     # Run all 3 stages
    ```
 
    This command will parse the annotated comments and generate the website files using the templates.
    Finally it will then host the produced files locally.
-
----
-
-## Configuration Example
-
-Below is an example configuration file (`config.anubis`) to help you get started:
-
-```json
-{
-    "url": "http://127.0.0.1:3000/",
-    "language_configs": {
-        "rs":{
-            "language": "rust",
-            "anubis_character": "@",
-            "multiline_start": "/*",
-            "multiline_end": "*/"
-        },
-        "md":{
-            "language": "markdown",
-            "anubis_character": "@",
-            "multiline_start": "<!--",
-            "multiline_end": "-->"
-        },
-        "html":{
-            "language": "html",
-            "anubis_character": "@",
-            "multiline_start": "<!--",
-            "multiline_end": "-->"
-        }
-    },
-    "anubis_ignore": [
-        "./.git/**",
-        "./target/**",
-        "*.anubis",
-        "*lock",
-        "*toml",
-        "*.gitignore",
-        "*.db"
-    ]
-}
-
-```
 
 ---
 
