@@ -1,0 +1,44 @@
+<button type="button" class="collapsable">Collapse</button>
+<div class="content">
+    <div>{% for html in content %} {{ html | safe }} {% endfor %}</div>
+</div>
+<script>
+    var coll = document.getElementsByClassName("collapsable");
+    var i;
+
+    for (i = 0; i < coll.length; i++) {
+        coll[i].addEventListener("click", function () {
+            this.classList.toggle("active");
+            console.log(this.nextElementSibling);
+            var content = this.nextElementSibling;
+            if (content.style.display === "block") {
+                content.style.display = "none";
+            } else {
+                content.style.display = "block";
+            }
+        });
+    }
+</script>
+<style>
+    .collapsible {
+        background-color: #eee;
+        color: #444;
+        cursor: pointer;
+        padding: 18px;
+        width: 100%;
+        border: none;
+        text-align: left;
+        outline: none;
+        font-size: 15px;
+    }
+
+    .active,
+    .collapsible:hover {
+        background-color: #ccc;
+    }
+
+    .content {
+        display: none;
+        overflow: hidden;
+    }
+</style>
