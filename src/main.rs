@@ -1,3 +1,7 @@
+use anubis::{
+    config::AnubisConfig, database::AnubisDatabase, parser::AnubisParser, renderer::AnubisRenderer,
+    server::AnubisServer,
+};
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
@@ -35,7 +39,7 @@ pub enum Commands {
 async fn main() {
     let cli = Cli::parse();
 
-    let config = AnubisConfig::deserialize_config(cli.config.as_ref())?;
+    let config = AnubisConfig::new(cli.config.as_ref())?;
     let database = AnubisDatabase::new(cli.database_cache.as_ref())?;
     let parser = AnubisParser::new(cli.parsing_directory.as_ref())?;
     let renderer = AnubisRenderer::new(cli.template_directory.as_ref())?;

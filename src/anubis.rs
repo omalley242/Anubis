@@ -1,17 +1,38 @@
-use crate::database::AnubisDatabase;
+use crate::{
+    config::AnubisConfigInterface, database::AnubisDatabaseInterface,
+    parser::AnubisParserInterface, renderer::AnubisRendererInterface,
+    server::AnubisServerInterface,
+};
 
-struct Anubis<A, B, C, D, E, F>
-where
-    A: AnubisConfigInterface,
-{
-    config: A,
-    database: AnubisDatabase<B, C>,
-    parser: D,
-    renderer: E,
-    server: F,
+trait AnubisInterface {
+    fn parse();
+    fn render();
+    async fn serve();
 }
 
-impl Anubis {
+struct Anubis<A, B, C, D, E>
+where
+    A: AnubisConfigInterface,
+    B: AnubisDatabaseInterface,
+    C: AnubisParserInterface,
+    D: AnubisRendererInterface,
+    E: AnubisServerInterface,
+{
+    config: A,
+    database: B,
+    parser: C,
+    renderer: D,
+    server: E,
+}
+
+impl<A, B, C, D, E> AnubisInterface for Anubis<A, B, C, D, E>
+where
+    A: AnubisConfigInterface,
+    B: AnubisDatabaseInterface,
+    C: AnubisParserInterface,
+    D: AnubisRendererInterface,
+    E: AnubisServerInterface,
+{
     fn parse() {}
 
     fn render() {}
