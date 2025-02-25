@@ -4,3 +4,4 @@ pub mod database;
 pub mod parser;
 pub mod renderer;
 pub mod server;
+pub mod error;
