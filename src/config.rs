@@ -9,34 +9,34 @@ use crate::error::AnubisError;
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 pub trait AnubisConfigInterface {
-    fn new(path: Option<&Path>) -> Result<Box<Self>>;
+    fn new(path: Option<&PathBuf>) -> Result<Box<Self>>;
 }
 
-#[derive(Deserialize, Serialize, Default)]
+#[derive(Debug, Deserialize, Serialize, Default, PartialEq, Eq)]
 pub struct LanguageConfig {
-    language: String,
-    syntax: String,
-    line: String,
-    start: String,
-    end: String,
+    pub language: String,
+    pub syntax: String,
+    pub line: String,
+    pub start: String,
+    pub end: String,
 }
 
-#[derive(Deserialize, Serialize, Default)]
+#[derive(Debug, Deserialize, Serialize, Default, PartialEq, Eq)]
 pub struct AnubisConfig {
     #[serde(default)]
-    url: Option<String>,
+    pub url: Option<String>,
 
     #[serde(default)]
-    template_directory: Option<String>,
+    pub template_directory: Option<String>,
 
     #[serde(default)]
-    anubis_ignore: Option<Vec<PathBuf>>,
+    pub anubis_ignore: Option<Vec<PathBuf>>,
 
-    language_configs: HashMap<String, LanguageConfig>,
+    pub language_configs: HashMap<String, LanguageConfig>,
 }
 
 impl AnubisConfigInterface for AnubisConfig {
-    fn new(path: Option<&Path>) -> Result<Box<Self>> {
+    fn new(path: Option<&PathBuf>) -> Result<Box<Self>> {
         if let Some(path) = path {
             let contents = fs::read_to_string(path)?;
             Ok(serde_json::from_str::<AnubisConfig>(&contents)?.into())

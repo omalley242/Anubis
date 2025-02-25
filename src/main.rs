@@ -1,6 +1,10 @@
 use anubis::{
-    config::AnubisConfig, database::AnubisDatabase, parser::AnubisParser, renderer::AnubisRenderer,
-    server::AnubisServer,
+    anubis::{Anubis, AnubisInterface},
+    config::{AnubisConfig, AnubisConfigInterface},
+    database::{AnubisDatabase, AnubisDatabaseInterface, PetgraphGraphDB, TantivyIndexDB},
+    parser::{AnubisParser, AnubisParserInterface},
+    renderer::{AnubisRenderer, AnubisRendererInterface},
+    server::{AnubisServer, AnubisServerInterface},
 };
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
@@ -39,11 +43,12 @@ pub enum Commands {
 async fn main() {
     let cli = Cli::parse();
 
-    let config = AnubisConfig::new(cli.config.as_ref())?;
-    let database = AnubisDatabase::new(cli.database_cache.as_ref())?;
-    let parser = AnubisParser::new(cli.parsing_directory.as_ref())?;
-    let renderer = AnubisRenderer::new(cli.template_directory.as_ref())?;
-    let server = AnubisServer::new();
+    let config: AnubisConfig = *AnubisConfigInterface::new(cli.config.as_ref()).unwrap();
+    let database: AnubisDatabase<PetgraphGraphDB, TantivyIndexDB> =
+        *AnubisDatabaseInterface::new(cli.database_cache.as_ref()).unwrap();
+    let parser: AnubisParser = AnubisParserInterface::new(cli.parsing_directory.as_ref());
+    let renderer: AnubisRenderer = AnubisRendererInterface::new(cli.template_directory.as_ref());
+    let server: AnubisServer = AnubisServerInterface::new();
 
     let anubis = Anubis {
         config,
@@ -58,8 +63,8 @@ async fn main() {
         Some(Commands::Render) => anubis.render(),
         Some(Commands::Serve) => anubis.serve().await,
         Some(Commands::All) | None => {
-            anubis.parse()?;
-            anubis.render()?;
+            anubis.parse();
+            anubis.render();
             anubis.serve().await
         }
     }

@@ -4,13 +4,13 @@ use crate::{
     server::AnubisServerInterface,
 };
 
-trait AnubisInterface {
-    fn parse();
-    fn render();
-    async fn serve();
+pub trait AnubisInterface {
+    fn parse(&self);
+    fn render(&self);
+    async fn serve(&self);
 }
 
-struct Anubis<A, B, C, D, E>
+pub struct Anubis<A, B, C, D, E>
 where
     A: AnubisConfigInterface,
     B: AnubisDatabaseInterface,
@@ -18,11 +18,11 @@ where
     D: AnubisRendererInterface,
     E: AnubisServerInterface,
 {
-    config: A,
-    database: B,
-    parser: C,
-    renderer: D,
-    server: E,
+    pub config: A,
+    pub database: B,
+    pub parser: C,
+    pub renderer: D,
+    pub server: E,
 }
 
 impl<A, B, C, D, E> AnubisInterface for Anubis<A, B, C, D, E>
@@ -33,9 +33,9 @@ where
     D: AnubisRendererInterface,
     E: AnubisServerInterface,
 {
-    fn parse() {}
+    fn parse(&self) {}
 
-    fn render() {}
+    fn render(&self) {}
 
-    async fn serve() {}
+    async fn serve(&self) {}
 }
